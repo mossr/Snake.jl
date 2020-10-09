@@ -105,8 +105,11 @@ function game!(field)
     if ax == px && ay == py
         tail += 1
         # random point not on trail
-        ax = rand(setdiff(2:tc-1, map(t->t.x, trail)))
-        ay = rand(setdiff(2:tc-1, map(t->t.y, trail)))
+        randapple() = rand(2:tc-1, 2)
+        ax, ay = randapple()
+        while in((x=ax, y=ay), trail)
+            ax, ay = randapple()
+        end
     end
 
     drawapple!(field)
@@ -213,3 +216,4 @@ function drawsnake!(field)
 end
 
 end # module
+
