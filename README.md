@@ -31,8 +31,8 @@ The game will start automatically.
 * `w` to apply up velocity
 * `esc` to pause, then `play()` to resume
 
-## Emoji support
 
+## Emoji support
 To play using emojis, run:
 
 ```julia
