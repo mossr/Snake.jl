@@ -57,19 +57,23 @@ function restart(; emoji=false)
     global PLAYING = false
     global PAUSED = false
     global EMOJI = emoji
+    global DELAY = 0.1
+    global MAXTIMEOUT = 30/DELAY
+    global TIMEOUT = 0
 
     play(emoji=emoji)
 end
 
 
 function play(; emoji=false)
-    global PAUSED, PLAYING, EMOJI
+    global PAUSED, PLAYING, EMOJI, TIMEOUT, MAXTIMEOUT
     EMOJI = emoji
     PAUSED = false
+    TIMEOUT = 0
     clearscreen()
     field = resetfield(gs, gs, tail-starttail)
     initialize_keyboard_input()
-    while !PAUSED
+    while !PAUSED && TIMEOUT <= MAXTIMEOUT
         PLAYING = true
         game!(field)
         sleep(0.1)
@@ -201,7 +205,7 @@ end
 
 
 function keypress()
-    global xv, yv
+    global xv, yv, TIMEOUT
     key = readinput()
     if key == KEY_LEFT
         xv, yv = -1, 0
@@ -213,7 +217,11 @@ function keypress()
         xv, yv = 0, -1
     elseif key == KEY_ESC
         return true # game over
+    else
+        TIMEOUT += 1
+        return false
     end
+    TIMEOUT = 0
     return false
 end
 
