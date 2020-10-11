@@ -4,4 +4,4 @@ authors = ["Robert Moss <mossr@cs.stanford.edu>"]
 version = "0.1.0"
 
 [compat]
-julia "1"
+julia = "1"
