@@ -1,7 +1,7 @@
 name = "Snake"
 uuid = "af688983-2b6d-40fa-a2f6-00f5fef758ee"
 authors = ["Robert Moss <mossr@cs.stanford.edu>"]
-version = "0.1.0"
+version = "0.1.1"
 
 [compat]
 julia = "1"
