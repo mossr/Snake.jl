@@ -11,8 +11,7 @@ The game of snake in the Julia REPL. 🟩🟩🟩🟩🟩&nbsp;&nbsp;&nbsp;&nbsp
 
 ## Installation
 ```julia
-using Pkg
-pkg"add https://github.com/mossr/Snake.jl"
+] add Snake
 ```
 
 ## Gameplay
