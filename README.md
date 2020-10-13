@@ -42,5 +42,10 @@ play(emoji=true)
   <img src="./img/snake-emoji.png">
 </p>
 
+## Other options
+- `play(walls=true)`: Restart the game when hitting walls (default `false`)
+- `play(size=(20,20))`: Change game field dimensions (default `(20,20)`)
+
+
 ---
 [Robert Moss](http://web.stanford.edu/~mossr)

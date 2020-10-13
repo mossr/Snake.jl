@@ -20,6 +20,10 @@ To play using emojis, run:
 ```julia
 play(emoji=true)
 ```
+
+## Other options
+- `play(walls=true)`: Restart the game when hitting walls (default `true`)
+- `play(size=(20,20))`: Change game field dimensions (default `(20,20)`)
 """
 module Snake
 
@@ -44,12 +48,16 @@ show_cursor() = println("\e[?25h")
 
 const Field = Array{String}
 
+global DEFAULTS = (emoji=false, walls=true, size=(20,20))
 
-function restart(; emoji=false)
-    global gs, px, py, tc, ax, ay, xv, yv, trail, tail, PAUSED
+
+function resetstate(; emoji=DEFAULTS.emoji, walls=DEFAULTS.walls, size=DEFAULTS.size)
+    global gridx, gridy, px, py, ax, ay, xv, yv, trail, tail, PAUSED
     global px = py = 10 # player position
-    global gs = tc = 20 # grid size, tile count
-    global ax = ay = 15 # apple position
+    global gridx = size[1] # grid y-size
+    global gridy = size[2] # grid x-size
+    global ax = rand(2:gridx-1) # initial apple x-position
+    global ay = rand(2:gridy-1) # initial apple y-position
     global xv = yv = 0 # player velocity
     global trail = []
     global starttail = 5
@@ -60,23 +68,37 @@ function restart(; emoji=false)
     global DELAY = 0.1
     global MAXTIMEOUT = 30/DELAY
     global TIMEOUT = 0
+    global WALLS = walls
 
-    play(emoji=emoji)
+    clearscreen()
 end
 
 
-function play(; emoji=false)
-    global PAUSED, PLAYING, EMOJI, TIMEOUT, MAXTIMEOUT
+function restart(; kwargs...)
+    resetstate(; kwargs...)
+    play(; kwargs...)
+end
+
+
+"""
+Snake options:
+- `emoji = false`: If `true`, play using emojis (requires terminal support)
+- `walls = true`: If `true`, restart the game when hitting walls
+- `size = (20,20)`: Game field dimensions
+"""
+function play(; emoji=DEFAULTS.emoji, walls=DEFAULTS.walls, size=DEFAULTS.size)
+    global PAUSED, PLAYING, EMOJI, DELAY, TIMEOUT, MAXTIMEOUT, WALLS, gridx, gridy
     EMOJI = emoji
     PAUSED = false
     TIMEOUT = 0
+    WALLS = walls
     clearscreen()
-    field = resetfield(gs, gs, tail-starttail)
+    field = resetfield(gridx, gridy, tail-starttail)
     initialize_keyboard_input()
     while !PAUSED && TIMEOUT <= MAXTIMEOUT
         PLAYING = true
-        game!(field)
-        sleep(0.1)
+        game!(field; emoji=emoji, walls=walls, size=size)
+        sleep(DELAY)
     end
     PLAYING = false
     close_keyboard_buffer()
@@ -85,28 +107,34 @@ function play(; emoji=false)
 end
 
 
-function game!(field)
-    global gs, px, py, tc, ax, ay, xv, yv, trail, tail, PAUSED
+function game!(field; walls, kwargs...)
+    global gridx, gridy, px, py, ax, ay, xv, yv, trail, tail, PAUSED, DELAY
 
     PAUSED = keypress()
+
+    hit_wall = false
 
     # apply velocity
     px += xv
     py += yv
 
     if px ≤ 1
-        px = tc-1
+        hit_wall = true
+        px = gridx-1
     end
 
-    if px ≥ tc
+    if px ≥ gridx
+        hit_wall = true
         px = 2
     end
 
     if py ≤ 1
-        py = tc
+        hit_wall = true
+        py = gridy
     end
 
-    if py > tc
+    if py > gridy
+        hit_wall = true
         py = 2
     end
 
@@ -115,7 +143,7 @@ function game!(field)
             tail = starttail # ate tail, restart game
         end
     end
-    field = resetfield(gs, gs, tail-starttail)
+    field = resetfield(gridx, gridy, tail-starttail)
 
     drawsnake!(field)
     push!(trail, (x=px, y=py))
@@ -127,7 +155,7 @@ function game!(field)
     if ax == px && ay == py
         tail += 1
         # random point not on trail
-        randapple() = rand(2:tc-1, 2)
+        randapple() = (rand(2:gridx-1), rand(2:gridy-1))
         ax, ay = randapple()
         while in((x=ax, y=ay), trail)
             ax, ay = randapple()
@@ -135,14 +163,20 @@ function game!(field)
     end
 
     drawapple!(field)
-    drawfield(field, gs, gs)
+    drawfield(field, gridx, gridy)
+
+    if walls && hit_wall
+        sleep(DELAY)
+        resetstate(; kwargs...)
+    end
 
     return PAUSED
 end
 
 
 function pausegame()
-    w = 2*(gs-2)
+    global gridx
+    w = 2*(gridx-2)
     println("╔", "─"^w, "╗")
     pause_msg = "PAUSED: play() to resume"
     println("║", " "^Int((w-length(pause_msg))/2), pause_msg, " "^Int((w-length(pause_msg))/2), "║")
@@ -175,7 +209,7 @@ end
 # Move cursor to 1,1, print field, move cursor to end
 function drawfield(field, fh, fw)
     # Draw entire field
-    print("\033[1;1H$(join(join.([field[i,:] for i in 1:size(field,1)]),"\n"))\033[$(fh+1);$(fw+1)H")
+    print("\033[1;1H$(join(join.([field[i,:] for i in 1:size(field,1)]),"\n"))\033[$(fw+1);$(fh+1)H")
 end
 
 
