@@ -51,18 +51,19 @@ const Field = Array{String}
 global DEFAULTS = (emoji=false, walls=true, size=(20,20))
 
 
-function resetstate(; emoji=DEFAULTS.emoji, walls=DEFAULTS.walls, size=DEFAULTS.size)
+function resetstate(; emoji=DEFAULTS.emoji, walls=DEFAULTS.walls, size=DEFAULTS.size, playing=false)
     global gridx, gridy, px, py, ax, ay, xv, yv, trail, tail, PAUSED
-    global px = py = 10 # player position
     global gridx = size[1] # grid y-size
     global gridy = size[2] # grid x-size
+    global px = rand(3:gridx-3) # initial player x-position (with some border-buffer)
+    global py = rand(3:gridy-3) # initial player y-position (with some border-buffer)
     global ax = rand(2:gridx-1) # initial apple x-position
     global ay = rand(2:gridy-1) # initial apple y-position
     global xv = yv = 0 # player velocity
     global trail = []
     global starttail = 5
     global tail = starttail
-    global PLAYING = false
+    global PLAYING = playing
     global PAUSED = false
     global EMOJI = emoji
     global DELAY = 0.1
@@ -167,7 +168,7 @@ function game!(field; walls, kwargs...)
 
     if walls && hit_wall
         sleep(DELAY)
-        resetstate(; kwargs...)
+        resetstate(; playing=true, kwargs...)
     end
 
     return PAUSED
@@ -176,10 +177,12 @@ end
 
 function pausegame()
     global gridx
-    w = 2*(gridx-2)
-    println("╔", "─"^w, "╗")
     pause_msg = "PAUSED: play() to resume"
-    println("║", " "^Int((w-length(pause_msg))/2), pause_msg, " "^Int((w-length(pause_msg))/2), "║")
+    w = 2*(gridx-2)
+    w = max(length(pause_msg)+2, w)
+    println("╔", "─"^w, "╗")
+    buff = Int((w-length(pause_msg))/2)
+    println("║", " "^buff, pause_msg, " "^buff, "║")
     println("╚", "─"^w, "╝")
 end
 
