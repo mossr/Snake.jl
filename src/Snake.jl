@@ -11,7 +11,7 @@ The game will start automatically.
 * `a` and `d` to apply left and right velocity
 * `s` to apply down velocity
 * `w` to apply up velocity
-* `esc` to pause, then `play()` to resume
+* `backtick` to pause, then `play()` to resume
 
 ## Emoji support
 
@@ -40,7 +40,7 @@ global const KEY_UP = 'w'
 global const KEY_LEFT = 'a'
 global const KEY_DOWN = 's'
 global const KEY_RIGHT = 'd'
-global const KEY_ESC = '\e'
+global const KEY_TICK = '`'
 global const ─  = "  " # Space character (variable is a box drawing character ASCII 196 ─)
 
 hide_cursor() = print("\e[?25l")
@@ -67,11 +67,9 @@ function resetstate(; emoji=DEFAULTS.emoji, walls=DEFAULTS.walls, size=DEFAULTS.
     global PAUSED = false
     global EMOJI = emoji
     global DELAY = 0.1
-    global MAXTIMEOUT = 30/DELAY
+    global MAXTIMEOUT = 120/DELAY
     global TIMEOUT = 0
     global WALLS = walls
-
-    clearscreen()
 end
 
 
@@ -93,9 +91,11 @@ function play(; emoji=DEFAULTS.emoji, walls=DEFAULTS.walls, size=DEFAULTS.size)
     PAUSED = false
     TIMEOUT = 0
     WALLS = walls
+    hide_cursor()
     clearscreen()
     field = resetfield(gridx, gridy, tail-starttail)
-    initialize_keyboard_input()
+    set_keyboard_input_mode()
+    task = capture_keyboard_input()
     while !PAUSED && TIMEOUT <= MAXTIMEOUT
         PLAYING = true
         game!(field; emoji=emoji, walls=walls, size=size)
@@ -104,6 +104,7 @@ function play(; emoji=DEFAULTS.emoji, walls=DEFAULTS.walls, size=DEFAULTS.size)
     PLAYING = false
     close_keyboard_buffer()
     show_cursor()
+    try Base.throwto(task, InterruptException()) catch end
     pausegame()
 end
 
@@ -187,6 +188,17 @@ function pausegame()
 end
 
 
+function pausedialog()
+    global gridx
+    pause_msg = "Hit ` to pause"
+    w = 2*(gridx-2)
+    w = max(length(pause_msg), w)
+    buff = Int((w-length(pause_msg))/2)
+    println()
+    println(" "^buff, " ", pause_msg, " "^buff)
+end
+
+
 function resetfield(fw::Int, fh::Int, score) # score::Int
     field = Field(fill(─,fh,fw))
     field[:,1] .= "│"
@@ -197,33 +209,36 @@ function resetfield(fw::Int, fh::Int, score) # score::Int
     even = iseven(fw)
     field = vcat(["┌" fill("──", Int(floor((fw-2-3)/2)))... repeat("─", even ? 1 : 2) "SN" "AK" "E!" repeat("─", even ? 3 : 2) fill("──", Int(floor((fw-2-3)/2))-1)... "┐"], field)
     field[2,end] *= "  Score: $score     "
-    field
+    return field
 end
 
 
 function clearscreen()
     println("\33[2J")
-    hide_cursor()
-    # Move cursor to (1,1), then print a bunch of whitespace, then move cursor to (1,1)
-    println("\033[1;1H$(join(fill(repeat(" ", 100),100), "\n"))\033[1;1H")
 end
 
 
 # Move cursor to 1,1, print field, move cursor to end
 function drawfield(field, fh, fw)
     # Draw entire field
-    print("\033[1;1H$(join(join.([field[i,:] for i in 1:size(field,1)]),"\n"))\033[$(fw+1);$(fh+1)H")
+    print("\033[1;1H$(join(join.([field[i,:] for i in 1:size(field,1)]),"\n"))")
+    pausedialog()
+    print("\033[$(fw+1);$(fh+1)H")
+end
+
+
+function set_keyboard_input_mode()
+    ccall(:jl_tty_set_mode, Int32, (Ptr{Cvoid}, Int32), stdin.handle, true)
 end
 
 
 # Key input handling
 global BUFFER
-function initialize_keyboard_input()
+function capture_keyboard_input()
     global BUFFER, PLAYING
-    ccall(:jl_tty_set_mode, Int32, (Ptr{Cvoid}, Int32), stdin.handle, true)
     BUFFER = Channel{Char}(100)
 
-    @async while PLAYING
+    return @async while PLAYING
         put!(BUFFER, read(stdin, Char))
     end
 end
@@ -252,7 +267,7 @@ function keypress()
         xv, yv = 0, 1
     elseif key == KEY_UP
         xv, yv = 0, -1
-    elseif key == KEY_ESC
+    elseif key == KEY_TICK
         return true # game over
     else
         TIMEOUT += 1
