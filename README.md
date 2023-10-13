@@ -19,7 +19,7 @@ The game of snake in the Julia REPL. 🟩🟩🟩🟩🟩&nbsp;&nbsp;&nbsp;&nbsp
 using Snake
 ```
 The game will start automatically.
-- Hit `esc` to pause the game.
+- Hit `backtick` to pause the game.
 - Resume with `play()` or restart the game with `restart()`
 
 
@@ -28,7 +28,7 @@ The game will start automatically.
 * `a` and `d` to apply left and right velocity
 * `s` to apply down velocity
 * `w` to apply up velocity
-* `esc` to pause, then `play()` to resume
+* `backtick` to pause, then `play()` to resume
 
 
 ## Emoji support
